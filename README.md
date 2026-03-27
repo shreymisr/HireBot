@@ -1,10 +1,10 @@
-# 🤖 TalentScout — AI-Powered Hiring Assistant
+# TalentScout — AI-Powered Hiring Assistant
 
 TalentScout is an intelligent hiring assistant built with **Streamlit** and powered by the **Groq** inference API (LLaMA 3.3 70B). It conducts structured initial screening interviews — collecting candidate details one field at a time, generating per-technology technical questions, and producing an exportable session report — all through a conversational chat interface.
 
 ---
 
-## ✨ Features
+## Features
 
 | Feature | Description |
 | :--- | :--- |
@@ -12,7 +12,7 @@ TalentScout is an intelligent hiring assistant built with **Streamlit** and powe
 | **One-Field-at-a-Time Collection** | The LLM asks for each piece of candidate info sequentially, never combining fields |
 | **Per-Technology Questions** | After tech stack is collected, 3–5 numbered questions (basic → advanced) are generated for *each* technology |
 | **Live Candidate Profile Card** | Sidebar card fills in real-time as info is collected; unfilled fields show *pending…* |
-| **Sentiment Analysis** | Every user message passes through `distilbert-base-uncased-finetuned-sst-2-english` — displayed as 😊/😐/😟 emoji, score bar, and trend chart |
+| **Sentiment Analysis** | Every user message passes through `distilbert-base-uncased-finetuned-sst-2-english` with factual input filtering — displayed as colored text badges, a score bar, and trend chart |
 | **Session Export (JSON)** | One-click download of profile + conversation + sentiment history + timestamp |
 | **GDPR Data Notice** | Visible disclaimer accompanying every export |
 | **Navy/White Recruiter Theme** | Professional dark sidebar, teal accents, styled profile card, and Inter typography |
@@ -21,7 +21,7 @@ TalentScout is an intelligent hiring assistant built with **Streamlit** and powe
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 HireBot/
@@ -36,7 +36,7 @@ HireBot/
 
 ---
 
-## 🚀 Installation
+## Installation
 
 ### Prerequisites
 
@@ -69,7 +69,7 @@ cp .env.example .env
 
 ---
 
-## ⚙️ Configuration
+## Configuration
 
 Create a `.env` file in the project root:
 
@@ -82,7 +82,7 @@ Alternatively, you can enter the key directly in the app's sidebar at runtime �
 
 ---
 
-## ▶️ Usage
+## Usage
 
 ```bash
 streamlit run app.py
@@ -94,11 +94,11 @@ streamlit run app.py
 4. Answer questions one at a time — watch the profile card fill in
 5. After tech stack is collected, the bot generates per-technology technical questions
 6. Type **"bye"**, **"exit"**, **"quit"**, or **"goodbye"** at any time to end early
-7. Use the **⬇️ Export Session** button to download the full session as JSON
+7. Use the **Export Session** button to download the full session as JSON
 
 ---
 
-## 🧠 Prompt Design
+## Prompt Design
 
 The system prompt (`config.py → SYSTEM_PROMPT`) is designed around several key principles:
 
@@ -118,23 +118,24 @@ When the candidate provides their tech stack, a secondary system message (`TECH_
 
 ---
 
-## 🎭 Sentiment Analysis
+## Sentiment Analysis
 
 Each user message is passed through a locally-run HuggingFace `transformers` pipeline:
 
 - **Model:** `distilbert-base-uncased-finetuned-sst-2-english`
 - **Backend:** PyTorch (CPU inference, no GPU required)
 - **Caching:** `@st.cache_resource` — the model loads once and persists across reruns
-- **Neutral threshold:** Predictions below 65% confidence on either label are classified as 😐 Neutral
+- **Factual Filter:** Inputs under 25 characters or matching regex patterns (e.g., names, emails, phone numbers) bypass the model entirely and default to Neutral. Why? Because short factual answers break sentiment accuracy and skew the session chart unnecessarily.
+- **Thresholds:** The pipeline only registers a Positive/Negative score if confidence exceeds 0.75 and 0.80, respectively. Everything else defaults back to Neutral.
 
 The sidebar displays:
-- The latest mood (emoji + label)
+- The latest mood as a CSS-styled HTML badge (Green/Grey/Red)
 - A confidence score bar
 - A session-wide positivity trend chart (after 2+ messages)
 
 ---
 
-## 🔒 Data Privacy
+## Data Privacy
 
 > **This application processes personal data. Handle responsibly.**
 
@@ -147,7 +148,7 @@ If deploying in a production environment, ensure you comply with GDPR, CCPA, or 
 
 ---
 
-## 🧩 Challenges & Solutions
+## Challenges & Solutions
 
 | Challenge | Solution |
 | :--- | :--- |
@@ -161,12 +162,12 @@ If deploying in a production environment, ensure you comply with GDPR, CCPA, or 
 
 ---
 
-## 📜 License
+## License
 
 This project is provided as-is for educational and demonstration purposes.
 
 ---
 
 <p align="center">
-  <b>Powered by</b> Groq ⚡ &nbsp;|&nbsp; LLaMA 3.3 70B &nbsp;|&nbsp; Streamlit &nbsp;|&nbsp; HuggingFace Transformers
+  <b>Powered by</b> Groq &nbsp;|&nbsp; LLaMA 3.3 70B &nbsp;|&nbsp; Streamlit &nbsp;|&nbsp; HuggingFace Transformers
 </p>
