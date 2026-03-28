@@ -10,7 +10,7 @@ from groq import Groq
 
 from config import GROQ_MODEL, STAGES, SYSTEM_PROMPT, TECH_STACK_INJECTION
 
-_STAGE_RE = re.compile(r"\[STAGE:(\w+)\]")
+_STAGE_RE = re.compile(r"\[STAGE:\s*(\w+)\s*\]")
 
 
 def _get_api_key() -> str | None:

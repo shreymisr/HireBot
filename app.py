@@ -145,6 +145,7 @@ def _init_state():
         "candidate_profile": {},
         "profile_field_index": 0,
         "sentiment_history": [],
+        "collecting":        False,
     }
     for key, val in defaults.items():
         if key not in st.session_state:
@@ -281,6 +282,17 @@ def _is_exit(text: str) -> bool:
     return text.strip().lower() in EXIT_KEYWORDS
 
 
+def _infer_stage_from_index(idx: int) -> str:
+    """Deterministic stage based on how many profile fields have been collected."""
+    if idx <= 0:
+        return "greeting"
+    if idx < 6:                         # fields 0-5: name → location
+        return "gathering_info"
+    if idx == 6:                        # field 6: tech_stack
+        return "tech_stack"
+    return "questioning"                # all 7 fields collected
+
+
 def _process_input(user_input: str):
     _add_message("user", user_input)
 
@@ -302,26 +314,43 @@ def _process_input(user_input: str):
         return
 
     prev_stage = st.session_state.stage
+    idx = st.session_state.profile_field_index
 
-    if prev_stage in ("gathering_info", "tech_stack"):
-        idx = st.session_state.profile_field_index
-        if idx < len(PROFILE_FIELDS):
-            field = PROFILE_FIELDS[idx]
-            st.session_state.candidate_profile[field] = user_input.strip()
+    # --- Save profile field ---------------------------------------------------
+    # The "collecting" flag is set after the first LLM interaction (the user's
+    # greeting trigger like "hi"). From the second user message onward,
+    # inputs are saved sequentially to profile fields — this is independent
+    # of the LLM's stage marker so it can't get out of sync.
+    if st.session_state.collecting and idx < len(PROFILE_FIELDS):
+        field = PROFILE_FIELDS[idx]
+        st.session_state.candidate_profile[field] = user_input.strip()
+        st.session_state.profile_field_index = idx + 1
 
+    # --- Get LLM response -----------------------------------------------------
     stage, response = get_response(
         st.session_state.messages,
         candidate_profile=st.session_state.candidate_profile,
         current_stage=prev_stage,
     )
 
+    # --- Determine stage -------------------------------------------------------
+    # Use LLM stage marker if available; otherwise fall back to index-based
+    # inference so the pill tracker always progresses.
     if stage:
         st.session_state.stage = stage
+    else:
+        inferred = _infer_stage_from_index(st.session_state.profile_field_index)
+        # Only advance forward — never jump backwards
+        current_idx = STAGES.index(st.session_state.stage)
+        inferred_idx = STAGES.index(inferred)
+        if inferred_idx > current_idx:
+            st.session_state.stage = inferred
 
-    if prev_stage in ("gathering_info", "tech_stack"):
-        idx = st.session_state.profile_field_index
-        if idx < len(PROFILE_FIELDS):
-            st.session_state.profile_field_index = idx + 1
+    # --- Activate collection for NEXT user message ----------------------------
+    # After the first LLM interaction (response to "hi"/"begin"), set the
+    # flag so the next user message will be saved as a profile field.
+    if not st.session_state.collecting:
+        st.session_state.collecting = True
 
     _add_message("assistant", response)
 
